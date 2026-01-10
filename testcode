@@ -12,7 +12,13 @@ int pos = 0;
 unsigned long lastTime;
 double Input, Output, Setpoint;
 double errSum, lastErr;
-double kp, ki, kd;
+double kp = 1;
+double ki;
+double kd;
+
+const unsigned long Ts = 20; // 20 ms
+unsigned long lastUpdate = 0;
+
 
 void setup() {
   pinMode(sensorPIN, INPUT);
@@ -25,7 +31,7 @@ void loop() {
   float raw = analogRead(sensorPIN);
   float voltage = raw * (5.0 / 1023.0);
   float distance = 27.86 * pow(voltage, -1.15);
-  Serial.print("Distance in cm: ");
+  Serial.print("Distance in cm: "); 
   Serial.println(distance);
   delay(10);
 
@@ -48,11 +54,21 @@ void loop() {
   /*Compute all the working error variables*/
   double error = Setpoint - Input;
   errSum += (error * dt);
-  double dErr = (error - lastErr) / dt;
+  double dErr = (error -  lastErr) / dt;
   
   /*Compute PID Output*/
   Output = kp * error + ki * errSum + kd * dErr;
-  myservo.write(Output);
+  Serial.println(Output);
+  pos += Output;
+  if (millis() - lastUpdate >= Ts) {
+    lastUpdate += Ts;
+
+    // float error = setpoint - measured;
+    // float control = pid.update(error);
+
+    int angle = constrain(Output, 0, 180);
+    myservo.write(angle);
+  }
 
   /*Remember some variables for next time*/
   lastErr = error;
