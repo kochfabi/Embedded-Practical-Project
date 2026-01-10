@@ -1,14 +1,19 @@
-test test
+const int sensorPIN = A0;
+const int servoPIN = 5;
 
-sensorPIN = A0;
-servoPIN = 5;
 
 void setup() {
-  // put your setup code here, to run once:
-
+  pinMode(sensorPIN, INPUT);
+  Serial.begin(9600);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-
+  float raw = analogRead(sensorPIN);
+  Serial.print("Analog Data: ");
+  Serial.print(raw);
+  float voltage = raw * (5.0 / 1023.0);
+  float distance = 27.86 * pow(voltage, -1.15);
+  Serial.print("Distance in cm: ");
+  Serial.println(distance);
+  delay(400);
 }
