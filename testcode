@@ -1,77 +1,74 @@
 #include <Servo.h>
 
-//define PINs
+// Pins
 const int sensorPIN = A0;
-const int servoPIN = 5;
+const int servoPIN  = 5;
 
 // Servo
-Servo myservo; 
-int pos = 0;
+Servo myservo;
 
-// PID control
-unsigned long lastTime;
-double Input, Output, Setpoint;
-double errSum, lastErr;
-double kp = 1;
-double ki;
-double kd;
+// PID variables
+double Setpoint = 15.0;   // distance from sensor to center [in cm]
+double Input;
+double Output;
 
-const unsigned long Ts = 20; // 20 ms
+double errSum = 0.0;
+double lastErr = 0.0;
+
+// PID gains
+double kp = 5.0;
+double ki = 0; // 0.05;
+double kd = 0; //0.2;
+
+// Timing
+const unsigned long Ts = 20;   // update interval in ms
 unsigned long lastUpdate = 0;
-
 
 void setup() {
   pinMode(sensorPIN, INPUT);
   myservo.attach(servoPIN);
+  myservo.write(90);           // neutral position
   Serial.begin(9600);
 }
 
 void loop() {
-  // read distance
-  float raw = analogRead(sensorPIN);
-  float voltage = raw * (5.0 / 1023.0);
-  float distance = 27.86 * pow(voltage, -1.15);
-  Serial.print("Distance in cm: "); 
-  Serial.println(distance);
-  delay(10);
 
-  // for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
-  //   // in steps of 1 degree
-  //   myservo.write(pos);              // tell servo to go to position in variable 'pos'
-  //   delay(15);                       // waits 15ms for the servo to reach the position
-  // }
-  // for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-  //   myservo.write(pos);              // tell servo to go to position in variable 'pos'
-  //   delay(15);                       // waits 15ms for the servo to reach the position
-  // }
-
-  Setpoint = 15; //distance from sensor to center point [in cm]
-  Input = distance;
-  /*How long since we last calculated*/
   unsigned long now = millis();
-  double dt = (double)(now - lastTime);
-  
-  /*Compute all the working error variables*/
-  double error = Setpoint - Input;
-  errSum += (error * dt);
-  double dErr = (error -  lastErr) / dt;
-  
-  /*Compute PID Output*/
-  Output = kp * error + ki * errSum + kd * dErr;
-  Serial.println(Output);
-  pos += Output;
-  if (millis() - lastUpdate >= Ts) {
-    lastUpdate += Ts;
+  int angle = 20;
+  if (now - lastUpdate >= Ts) {
+    lastUpdate = now;
 
-    // float error = setpoint - measured;
-    // float control = pid.update(error);
+    // ---- SENSOR ----
+    int raw = analogRead(sensorPIN);
+    float voltage = raw * (5.0 / 1023.0);
+    voltage = constrain(voltage, 0.45, 2.8);     // contrain voltage
+    Input = 27.86 * pow(voltage, -1.15);
 
-    int angle = constrain(Output, 0, 180);
-    myservo.write(angle);
+    // ---- PID ----
+    double dt = Ts / 1000.0;   // seconds
+
+    double error = Setpoint - Input;
+
+    errSum += error * dt;
+    errSum = constrain(errSum, -50, 50);  // anti-windup
+
+    double dErr = (error - lastErr) / dt;
+    lastErr = error;
+
+    Output = kp * error + ki * errSum + kd * dErr;
+
+    // ---- SERVO ----
+    angle = constrain(90 + Output, 0, 180);
+
+
+    // ---- DEBUG ----
+    Serial.print("Dist: ");
+    Serial.print(Input);
+    Serial.print("  Out: ");
+    Serial.print(Output);
+    Serial.print("  Angle: ");
+    Serial.println(angle);
   }
-
-  /*Remember some variables for next time*/
-  lastErr = error;
-  lastTime = now;
-
+  
+  myservo.write(angle);
 }
