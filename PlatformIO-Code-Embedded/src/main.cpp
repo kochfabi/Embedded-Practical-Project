@@ -7,11 +7,11 @@ const int servoPIN  = 5;
 
 // Servo
 Servo myservo;
-int max_step_size = 4;
+int max_step_size = 7;
 int angle = 90; // starting position
 
 // PID variables
-double Setpoint = 15.0;   // distance from sensor to center [in cm]
+double Setpoint = 17.0;   // distance from sensor to center [in cm]
 double Input;
 double Output;
 
@@ -19,12 +19,12 @@ double errSum = 0.0;
 double lastErr = 0.0;
 
 // PID gains
-double kp = 5.0;
-double ki = 0;
-double kd = 0;
+double kp = 5;
+double ki = 0.2;
+double kd = 1;
 
 // Timing
-const unsigned long Ts = 20;   // update interval in ms
+const unsigned long Ts = 40;   // update interval in ms
 unsigned long lastUpdate = 0;
 
 void setup() {
@@ -60,7 +60,7 @@ void loop() {
     Output = kp * error + ki * errSum + kd * dErr;
 
     // ---- SERVO ----
-    int targetAngle = constrain(90 + Output, 0, 180);
+    int targetAngle = constrain(115 + Output, 0, 180);
     int delta = targetAngle - angle;
     delta = constrain(delta, -max_step_size, max_step_size);
     angle += delta;
